@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  name                String?
+  email               String?   @unique
+  emailVerified       DateTime?
+  image               String?
+  profileId           String?   @unique
+  onboardingCompleted Boolean   @default(false)
+  phoneNumber         String?
+  walletAddress       String?
+  campaignLimit       Int       @default(10)
+  firstLoginIp        String?
+  firstLoginAt        DateTime?
+  referralCode        String?   @unique
+  referralCount       Int       @default(0)
+  isReferralQualified Boolean   @default(false)
+  referredById        String?
+
+  profile    Profile? @relation(fields: [profileId], references: [id])
+  referredBy User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals  User[]   @relation("UserReferrals")
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  displayName  String?
+  avatarUrl    String?
+  role         Role     @default(CREATOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  discordId    String?  @unique
+  discordTag   String?
+  guildRoles   String[] @default([])
+  invitedById  String?
+  invitesCount Int      @default(0)
+  bio          String?  @db.VarChar(200)
+  isPublic     Boolean  @default(true)
+  location     String?
+  showEarnings Boolean  @default(false)
+  socialLinks  Json?
+  username     String?  @unique
+  website      String?
+
+  invitedBy Profile?  @relation("Referrals", fields: [invitedById], references: [id])
+  referrals Profile[] @relation("Referrals")
+  user      User?
+}
+
+enum Role {
+  CREATOR
+  STREAMER
+  PRODUCER
+  BRAND
+  MODERATOR
+  ADMIN
+}
