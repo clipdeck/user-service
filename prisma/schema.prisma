@@ -29,6 +29,8 @@ model User {
   profile    Profile? @relation(fields: [profileId], references: [id])
   referredBy User?    @relation("UserReferrals", fields: [referredById], references: [id])
   referrals  User[]   @relation("UserReferrals")
+
+  @@index([referredById])
 }
 
 model Profile {
@@ -55,6 +57,10 @@ model Profile {
   invitedBy Profile?  @relation("Referrals", fields: [invitedById], references: [id])
   referrals Profile[] @relation("Referrals")
   user      User?
+
+  @@index([role])
+  @@index([invitedById])
+  @@index([createdAt(sort: Desc)])
 }
 
 enum Role {
