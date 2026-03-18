@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { config } from './config';
 import { logger } from './lib/logger';
+import { register } from './lib/metrics';
 import { userRoutes } from './routes/users';
 import { profileRoutes } from './routes/profiles';
 import { searchRoutes } from './routes/search';
@@ -21,6 +22,12 @@ async function main() {
     credentials: true,
   });
   await app.register(helmet);
+
+  // Metrics endpoint for Prometheus scraping
+  app.get('/metrics', async (_req, reply) => {
+    reply.header('Content-Type', register.contentType);
+    return reply.send(await register.metrics());
+  });
 
   // Health check
   app.get('/health', async () => ({ status: 'ok', service: 'user-service' }));
