@@ -27,9 +27,12 @@ async function main() {
   await app.register(helmet);
 
   // Mount Better Auth handler at /auth/* (before other routes)
-  // toNodeHandler wraps the fetch-based Better Auth handler for Node.js http
+  // toNodeHandler wraps the fetch-based Better Auth handler for Node.js http.
+  // reply.hijack() tells Fastify we own the raw response — without it Fastify
+  // tries to serialize `reply` itself and returns {"statusCode":200,"headers":{…}}.
   const authHandler = toNodeHandler(auth);
   app.all('/auth/*', async (request, reply) => {
+    reply.hijack();
     await authHandler(request.raw, reply.raw);
   });
 
