@@ -13,8 +13,11 @@ model User {
   id                  String    @id @default(cuid())
   name                String?
   email               String?   @unique
-  emailVerified       DateTime?
+  emailVerified       Boolean   @default(false)
   image               String?
+  role                String    @default("CLIPPER")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   profileId           String?   @unique
   onboardingCompleted Boolean   @default(false)
   phoneNumber         String?
@@ -27,11 +30,96 @@ model User {
   isReferralQualified Boolean   @default(false)
   referredById        String?
 
-  profile    Profile? @relation(fields: [profileId], references: [id])
-  referredBy User?    @relation("UserReferrals", fields: [referredById], references: [id])
-  referrals  User[]   @relation("UserReferrals")
+  profile              Profile?              @relation(fields: [profileId], references: [id])
+  referredBy           User?                 @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals            User[]                @relation("UserReferrals")
+  accounts             UserAccount[]
+  sessions             UserSession[]
+  passkeys             Passkey[]
+  linkedSocialAccounts LinkedSocialAccount[]
 
   @@index([referredById])
+}
+
+model UserAccount {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?   @db.Text
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+
+  @@index([userId])
+  @@index([token])
+}
+
+model UserVerification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+model Passkey {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String?
+  publicKey    String
+  credentialID String    @unique
+  counter      Int       @default(0)
+  deviceType   String?
+  backedUp     Boolean   @default(false)
+  transports   String?
+  aaguid       String?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model LinkedSocialAccount {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform     String
+  platformId   String
+  username     String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  scopes       String[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, platform])
+  @@index([userId])
 }
 
 model Profile {

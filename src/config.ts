@@ -17,6 +17,12 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
 
   DISCORD_SERVICE_URL: z.string().url().optional(),
+
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  BETTER_AUTH_URL: z.string().default('https://api.clipdeck.ar'),
+  DISCORD_CLIENT_ID: z.string().optional(),
+  DISCORD_CLIENT_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -38,6 +44,11 @@ export const config = {
   jwtSecret: parsed.data.JWT_SECRET,
   allowedOrigins: parsed.data.ALLOWED_ORIGINS.split(',').map((s) => s.trim()),
   discordServiceUrl: parsed.data.DISCORD_SERVICE_URL,
+  googleClientId: parsed.data.GOOGLE_CLIENT_ID,
+  googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
+  betterAuthUrl: parsed.data.BETTER_AUTH_URL,
+  discordClientId: parsed.data.DISCORD_CLIENT_ID,
+  discordClientSecret: parsed.data.DISCORD_CLIENT_SECRET,
   isDev: parsed.data.NODE_ENV === 'development',
   isProd: parsed.data.NODE_ENV === 'production',
 };

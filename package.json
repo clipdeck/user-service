@@ -18,15 +18,17 @@
     "test:coverage": "vitest run --config vitest.config.mjs --coverage"
   },
   "dependencies": {
+    "@better-auth/passkey": "^1.5.5",
     "@clipdeck/events": "file:../shared-events",
     "@clipdeck/types": "file:../shared-types",
     "@fastify/cors": "^10.0.1",
     "@fastify/helmet": "^12.0.1",
     "@prisma/client": "^6.1.0",
+    "better-auth": "^1.5.5",
     "fastify": "^5.1.0",
     "pino": "^9.6.0",
-    "zod": "^3.24.1",
-    "prom-client": "^15.1.3"
+    "prom-client": "^15.1.3",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

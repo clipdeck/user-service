@@ -8,8 +8,11 @@ import { userRoutes } from './routes/users';
 import { profileRoutes } from './routes/profiles';
 import { searchRoutes } from './routes/search';
 import { referralRoutes } from './routes/referrals';
+import { linkedAccountRoutes } from './routes/linkedAccounts';
 import { publisher } from './lib/events';
 import { setupEventHandlers, stopEventHandlers } from './events/handlers';
+import { auth } from './lib/auth';
+import { toNodeHandler } from 'better-auth/node';
 
 async function main() {
   const app = Fastify({
@@ -18,10 +21,17 @@ async function main() {
 
   // Plugins
   await app.register(cors, {
-    origin: config.allowedOrigins,
+    origin: [...config.allowedOrigins, 'https://clipdeck.ar'],
     credentials: true,
   });
   await app.register(helmet);
+
+  // Mount Better Auth handler at /auth/* (before other routes)
+  // toNodeHandler wraps the fetch-based Better Auth handler for Node.js http
+  const authHandler = toNodeHandler(auth);
+  app.all('/auth/*', async (request, reply) => {
+    await authHandler(request.raw, reply.raw);
+  });
 
   // Metrics endpoint for Prometheus scraping
   app.get('/metrics', async (_req, reply) => {
@@ -41,6 +51,7 @@ async function main() {
   await app.register(profileRoutes, { prefix: '/profiles' });
   await app.register(searchRoutes, { prefix: '/users/search' });
   await app.register(referralRoutes, { prefix: '/referrals' });
+  await app.register(linkedAccountRoutes, { prefix: '/users' });
 
   // Connect event publisher
   await publisher.connect();
