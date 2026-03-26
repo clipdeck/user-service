@@ -75,8 +75,12 @@ async function main() {
     const fetchReq  = new Request(url, { method: request.method, headers, body });
     const fetchRes  = await auth.handler(fetchReq);
 
-    const resHeaders: Record<string, string> = {};
-    fetchRes.headers.forEach((v, k) => { resHeaders[k] = v; });
+    // Collect headers — must use an array of [name, value] tuples so that
+    // duplicate headers (especially multiple set-cookie) are all forwarded.
+    // Using Record<string, string> + object assignment silently drops all but
+    // the last value for any repeated header key (e.g. set-cookie).
+    const resHeaders: [string, string][] = [];
+    fetchRes.headers.forEach((v, k) => { resHeaders.push([k, v]); });
 
     reply.raw.writeHead(fetchRes.status, resHeaders);
     reply.raw.end(await fetchRes.text());
