@@ -57,7 +57,7 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: 'clipdeck',
     generateId: 'uuid',
-    crossSubdomainCookies: {
+    crossSubDomainCookies: {
       enabled: true,
       domain: '.clipdeck.ar',
     },
