@@ -57,6 +57,10 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: 'clipdeck',
     generateId: 'uuid',
+    crossSubdomainCookies: {
+      enabled: true,
+      domain: '.clipdeck.ar',
+    },
     ipAddress: {
       // api-gateway always forwards the real IP in X-Forwarded-For
       ipAddressHeaders: ['x-forwarded-for', 'x-real-ip'],
