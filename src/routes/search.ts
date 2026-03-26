@@ -1,21 +1,21 @@
 import type { FastifyInstance } from 'fastify';
-import { requireAuth } from '../middleware/auth';
 import { sendError, badRequest } from '../lib/errors';
 import * as searchService from '../services/searchService';
 
 export async function searchRoutes(app: FastifyInstance) {
-  // POST /users/search - Search users
-  app.post('/', async (request, reply) => {
+  // GET /users/search?q=... - Search users (public)
+  app.get<{ Querystring: { q?: string; limit?: string } }>('/', async (request, reply) => {
     try {
-      requireAuth(request);
-      const body = request.body as { query?: string; limit?: number };
+      const { q: query, limit: limitStr } = request.query;
 
-      if (!body.query || typeof body.query !== 'string') {
+      if (!query || typeof query !== 'string') {
         throw badRequest('Search query is required');
       }
 
-      const limit = body.limit && body.limit > 0 ? Math.min(body.limit, 50) : 10;
-      const results = await searchService.searchUsers(body.query, limit);
+      const limit = limitStr && parseInt(limitStr, 10) > 0
+        ? Math.min(parseInt(limitStr, 10), 50)
+        : 10;
+      const results = await searchService.searchUsers(query, limit);
       return { results };
     } catch (error) {
       sendError(reply, error);
