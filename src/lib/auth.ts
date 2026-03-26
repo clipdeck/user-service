@@ -28,6 +28,9 @@ export const auth = betterAuth({
   account: {
     modelName: 'userAccount',
   },
+  verification: {
+    modelName: 'userVerification',
+  },
   socialProviders: {
     discord: {
       clientId: config.discordClientId ?? '',
@@ -54,6 +57,10 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: 'clipdeck',
     generateId: 'uuid',
+    ipAddress: {
+      // api-gateway always forwards the real IP in X-Forwarded-For
+      ipAddressHeaders: ['x-forwarded-for', 'x-real-ip'],
+    },
   },
 });
 
