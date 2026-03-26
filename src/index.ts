@@ -12,7 +12,6 @@ import { linkedAccountRoutes } from './routes/linkedAccounts';
 import { publisher } from './lib/events';
 import { setupEventHandlers, stopEventHandlers } from './events/handlers';
 import { auth } from './lib/auth';
-import { toNodeHandler } from 'better-auth/node';
 
 async function main() {
   const app = Fastify({
@@ -26,14 +25,51 @@ async function main() {
   });
   await app.register(helmet);
 
-  // Mount Better Auth handler at /auth/* (before other routes)
-  // toNodeHandler wraps the fetch-based Better Auth handler for Node.js http.
-  // reply.hijack() tells Fastify we own the raw response — without it Fastify
-  // tries to serialize `reply` itself and returns {"statusCode":200,"headers":{…}}.
-  const authHandler = toNodeHandler(auth);
+  // Mount Better Auth handler at /auth/* (before other routes).
+  //
+  // Why not toNodeHandler?  Fastify's JSON content-type parser reads and
+  // drains request.raw before our route handler fires.  toNodeHandler then
+  // tries to read the body a second time → gets an empty stream → hangs on
+  // POST bodies (sign-in/social, etc).
+  //
+  // Instead, we call auth.handler() (the fetch-API surface) directly:
+  // 1. Build a Web API Request using request.body (already parsed by Fastify).
+  // 2. Await the Response.
+  // 3. Write status + headers + body straight to reply.raw (hijacked so
+  //    Fastify doesn't interfere).
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    // Keep the raw string so auth routes can re-serialize it faithfully.
+    try { done(null, JSON.parse(body as string)); } catch (e) { done(e as Error); }
+  });
+
   app.all('/auth/*', async (request, reply) => {
     reply.hijack();
-    await authHandler(request.raw, reply.raw);
+
+    const proto = config.isProd ? 'https' : 'http';
+    const host  = (request.headers.host as string) ?? `localhost:${config.port}`;
+    const url   = new URL(request.url, `${proto}://${host}`);
+
+    const headers = new Headers();
+    for (const [k, v] of Object.entries(request.headers)) {
+      if (v != null) headers.set(k, Array.isArray(v) ? v.join(', ') : v);
+    }
+
+    let body: string | null = null;
+    if (request.method !== 'GET' && request.method !== 'HEAD' && request.body != null) {
+      body = typeof request.body === 'string'
+        ? request.body
+        : JSON.stringify(request.body);
+      headers.set('content-type', 'application/json');
+    }
+
+    const fetchReq  = new Request(url, { method: request.method, headers, body });
+    const fetchRes  = await auth.handler(fetchReq);
+
+    const resHeaders: Record<string, string> = {};
+    fetchRes.headers.forEach((v, k) => { resHeaders[k] = v; });
+
+    reply.raw.writeHead(fetchRes.status, resHeaders);
+    reply.raw.end(await fetchRes.text());
   });
 
   // Metrics endpoint for Prometheus scraping
