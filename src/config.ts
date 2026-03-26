@@ -20,7 +20,7 @@ const envSchema = z.object({
 
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  BETTER_AUTH_URL: z.string().default('https://api.clipdeck.ar'),
+  BETTER_AUTH_URL: z.string().default('https://api.clipdeck.ar/api/auth'),
   DISCORD_CLIENT_ID: z.string().optional(),
   DISCORD_CLIENT_SECRET: z.string().optional(),
 });

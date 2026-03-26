@@ -45,12 +45,19 @@ async function main() {
   app.all('/auth/*', async (request, reply) => {
     reply.hijack();
 
-    // Better Auth validates the full URL (host + path) against baseURL.
-    // baseURL = 'https://api.clipdeck.ar/api', basePath = '/auth', so
-    // it expects requests at https://api.clipdeck.ar/api/auth/*.
-    // The api-gateway strips /api before forwarding to us, so request.url
-    // is /auth/*. Prepend betterAuthUrl to reconstruct the correct URL.
-    const url = new URL(config.betterAuthUrl + request.url);
+    // Better Auth's baseURL is 'https://api.clipdeck.ar/api/auth'.
+    // It ignores basePath when baseURL already has a path (Better Auth's withPath()
+    // short-circuits when checkHasPath() is true), so the effective mount point is
+    // exactly the baseURL pathname (/api/auth).
+    //
+    // The api-gateway strips /api and forwards /auth/* to us.
+    // Strip the leading /auth so we get the bare endpoint path, then prepend
+    // betterAuthUrl to reconstruct the canonical URL Better Auth expects.
+    const basePath = '/auth';
+    const endpointPath = request.url.startsWith(basePath)
+      ? request.url.slice(basePath.length) || '/'
+      : request.url;
+    const url = new URL(config.betterAuthUrl + endpointPath);
 
     const headers = new Headers();
     for (const [k, v] of Object.entries(request.headers)) {
