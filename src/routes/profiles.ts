@@ -26,12 +26,44 @@ export async function profileRoutes(app: FastifyInstance) {
     }
   });
 
+  // PATCH /profiles/me - Alias for PUT /profiles/me (frontend compatibility)
+  app.patch('/me', async (request, reply) => {
+    try {
+      const authUser = requireAuth(request);
+      const body = request.body as {
+        displayName?: string;
+        bio?: string;
+        avatarUrl?: string;
+        isPublic?: boolean;
+        location?: string;
+        showEarnings?: boolean;
+        socialLinks?: Record<string, string>;
+        website?: string;
+        username?: string;
+      };
+      const updated = await userService.updateProfileDetails(authUser.userId, body);
+      return updated;
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
   // PATCH /profiles/me/onboarding - Complete onboarding
   app.patch('/me/onboarding', async (request, reply) => {
     try {
       const authUser = requireAuth(request);
       const updated = await userService.completeOnboarding(authUser.userId);
       return updated;
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  // GET /profiles/:username - Public profile by username
+  app.get<{ Params: { username: string } }>('/:username', async (request, reply) => {
+    try {
+      const result = await userService.getUserByUsername(request.params.username);
+      return result;
     } catch (error) {
       sendError(reply, error);
     }

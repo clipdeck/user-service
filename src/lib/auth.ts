@@ -3,6 +3,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { passkey } from '@better-auth/passkey';
 import { prisma } from './prisma';
 import { config } from '../config';
+import { logger } from './logger';
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -51,6 +52,38 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         defaultValue: 'CLIPPER',
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          try {
+            // Derive a displayName from the user's name or email prefix
+            const displayName = user.name
+              ?? (user.email ? user.email.split('@')[0] : undefined)
+              ?? undefined;
+
+            const profile = await prisma.profile.create({
+              data: {
+                email: user.email ?? `${user.id}@unknown`,
+                displayName,
+                avatarUrl: (user as Record<string, unknown>).image as string | undefined,
+                createdAt: new Date(),
+              },
+            });
+
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { profileId: profile.id },
+            });
+
+            logger.info({ userId: user.id, profileId: profile.id }, 'Auto-created profile for new user');
+          } catch (err) {
+            logger.error({ err, userId: user.id }, 'Failed to auto-create profile for new user');
+          }
+        },
       },
     },
   },

@@ -31,6 +31,22 @@ export async function userRoutes(app: FastifyInstance) {
     }
   });
 
+  // PATCH /users/me - Alias for PUT /users/me (frontend compatibility)
+  app.patch('/me', async (request, reply) => {
+    try {
+      const authUser = requireAuth(request);
+      const body = request.body as {
+        walletAddress?: string;
+        name?: string;
+        phoneNumber?: string;
+      };
+      const updated = await userService.updateProfile(authUser.userId, body);
+      return updated;
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
   // GET /users/me/stats - Get user stats
   app.get('/me/stats', async (request, reply) => {
     try {

@@ -9,6 +9,7 @@ import { profileRoutes } from './routes/profiles';
 import { searchRoutes } from './routes/search';
 import { referralRoutes } from './routes/referrals';
 import { linkedAccountRoutes } from './routes/linkedAccounts';
+import { sessionRoutes } from './routes/sessions';
 import { publisher } from './lib/events';
 import { setupEventHandlers, stopEventHandlers } from './events/handlers';
 import { auth } from './lib/auth';
@@ -113,6 +114,7 @@ async function main() {
   await app.register(searchRoutes, { prefix: '/users/search' });
   await app.register(referralRoutes, { prefix: '/referrals' });
   await app.register(linkedAccountRoutes, { prefix: '/users' });
+  await app.register(sessionRoutes, { prefix: '/users' });
 
   // Connect event publisher
   await publisher.connect();
@@ -131,6 +133,14 @@ async function main() {
 
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
+
+  // Warn if OAuth provider env vars are missing (causes 404 on sign-in routes)
+  if (!config.discordClientId || !config.discordClientSecret) {
+    logger.warn('DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET is missing — Discord OAuth will return 404');
+  }
+  if (!config.googleClientId || !config.googleClientSecret) {
+    logger.warn('GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing — Google OAuth will return 404');
+  }
 
   // Start server
   await app.listen({ port: config.port, host: config.host });
