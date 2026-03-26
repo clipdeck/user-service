@@ -45,9 +45,12 @@ async function main() {
   app.all('/auth/*', async (request, reply) => {
     reply.hijack();
 
-    const proto = config.isProd ? 'https' : 'http';
-    const host  = (request.headers.host as string) ?? `localhost:${config.port}`;
-    const url   = new URL(request.url, `${proto}://${host}`);
+    // Better Auth validates the full URL (host + path) against baseURL.
+    // baseURL = 'https://api.clipdeck.ar/api', basePath = '/auth', so
+    // it expects requests at https://api.clipdeck.ar/api/auth/*.
+    // The api-gateway strips /api before forwarding to us, so request.url
+    // is /auth/*. Prepend betterAuthUrl to reconstruct the correct URL.
+    const url = new URL(config.betterAuthUrl + request.url);
 
     const headers = new Headers();
     for (const [k, v] of Object.entries(request.headers)) {
