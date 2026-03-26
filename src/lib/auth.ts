@@ -11,6 +11,11 @@ export const auth = betterAuth({
   secret: config.jwtSecret,
   baseURL: config.betterAuthUrl,
   basePath: '/auth',
+  trustedOrigins: [
+    'https://clipdeck.ar',
+    'https://api.clipdeck.ar',
+    ...config.allowedOrigins,
+  ],
   session: {
     modelName: 'userSession',
     expiresIn: 60 * 60 * 24 * 30, // 30 days
