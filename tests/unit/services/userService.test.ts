@@ -33,6 +33,46 @@ describe('getUserById', () => {
       code: 'NOT_FOUND',
     });
   });
+
+  it('lazily creates a profile when user exists but profile is null', async () => {
+    const user = makeUser({ profile: null, email: 'lazy@example.com', name: 'Lazy User' });
+    const createdProfile = makeProfile({ email: 'lazy@example.com', displayName: 'Lazy User' });
+
+    mockPrisma.user.findUnique.mockResolvedValue(user);
+    mockPrisma.profile.create.mockResolvedValue(createdProfile);
+    mockPrisma.user.update.mockResolvedValue({ ...user, profileId: createdProfile.id });
+
+    const result = await userService.getUserById('user-1');
+
+    expect(result.profile).toEqual(createdProfile);
+    expect(mockPrisma.profile.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        email: 'lazy@example.com',
+        displayName: 'Lazy User',
+      }),
+    });
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { profileId: createdProfile.id },
+    });
+  });
+
+  it('uses email prefix as displayName when name is null during lazy creation', async () => {
+    const user = makeUser({ profile: null, name: null, email: 'john@example.com' });
+    const createdProfile = makeProfile({ email: 'john@example.com', displayName: 'john' });
+
+    mockPrisma.user.findUnique.mockResolvedValue(user);
+    mockPrisma.profile.create.mockResolvedValue(createdProfile);
+    mockPrisma.user.update.mockResolvedValue({ ...user, profileId: createdProfile.id });
+
+    await userService.getUserById('user-1');
+
+    expect(mockPrisma.profile.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        displayName: 'john',
+      }),
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

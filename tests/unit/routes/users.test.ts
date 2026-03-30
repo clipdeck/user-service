@@ -229,14 +229,21 @@ describe('GET /users/:id', () => {
     expect(body.profile.socialLinks).toBeUndefined();
   });
 
-  it('returns null profile when user has no profile', async () => {
+  it('lazily creates a profile when user has no profile and returns it', async () => {
     const user = makeUser({ profile: null });
+    const createdProfile = makeProfile({ email: user.email! });
+
     mockPrisma.user.findUnique.mockResolvedValue(user);
+    mockPrisma.profile.create.mockResolvedValue(createdProfile);
+    mockPrisma.user.update.mockResolvedValue({ ...user, profileId: createdProfile.id });
 
     const res = await app.inject({ method: 'GET', url: '/users/user-1' });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json().profile).toBeNull();
+    const body = res.json();
+    expect(body.profile).not.toBeNull();
+    expect(body.profile.displayName).toBe(createdProfile.displayName);
+    expect(mockPrisma.profile.create).toHaveBeenCalled();
   });
 
   it('returns 404 for non-existent user ID', async () => {

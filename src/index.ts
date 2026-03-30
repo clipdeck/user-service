@@ -91,8 +91,27 @@ async function main() {
       }
     });
 
+    // Redact raw session tokens from /auth/list-sessions responses to
+    // prevent token leakage to the client.
+    let responseBody = await fetchRes.text();
+    if (endpointPath.startsWith('/list-sessions') && fetchRes.status === 200 && responseBody) {
+      try {
+        const parsed = JSON.parse(responseBody);
+        if (Array.isArray(parsed)) {
+          for (const session of parsed) {
+            if (session && typeof session.token === 'string') {
+              session.token = '[REDACTED]';
+            }
+          }
+          responseBody = JSON.stringify(parsed);
+        }
+      } catch {
+        // Not JSON — pass through unchanged
+      }
+    }
+
     reply.raw.writeHead(fetchRes.status, resHeaders);
-    reply.raw.end(await fetchRes.text());
+    reply.raw.end(responseBody);
   });
 
   // Metrics endpoint for Prometheus scraping

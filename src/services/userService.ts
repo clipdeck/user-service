@@ -5,7 +5,9 @@ import { logger } from '../lib/logger';
 import type { AuthUser } from '../middleware/auth';
 
 /**
- * Get user by ID with profile
+ * Get user by ID with profile.
+ * Lazily creates a default Profile record when one is missing (covers
+ * users who signed up before the databaseHooks auto-creation was added).
  */
 export async function getUserById(id: string) {
   const user = await prisma.user.findUnique({
@@ -14,6 +16,12 @@ export async function getUserById(id: string) {
   });
 
   if (!user) throw notFound(`User ${id} not found`);
+
+  if (!user.profile) {
+    const profile = await ensureProfile(user);
+    return { ...user, profile };
+  }
+
   return user;
 }
 
@@ -222,4 +230,36 @@ export async function getUserByUsername(username: string) {
     memberSince: profile.createdAt,
     isPublic: true,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Lazy profile creation for users missing a Profile record
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a default Profile for an existing user who doesn't have one.
+ * This handles users created before the Better Auth databaseHooks were added,
+ * as well as any edge cases where the hook failed silently.
+ */
+async function ensureProfile(user: { id: string; name: string | null; email: string | null; image?: string | null }) {
+  const displayName = user.name
+    ?? (user.email ? user.email.split('@')[0] : undefined)
+    ?? undefined;
+
+  const profile = await prisma.profile.create({
+    data: {
+      email: user.email ?? `${user.id}@unknown`,
+      displayName,
+      avatarUrl: user.image ?? undefined,
+      createdAt: new Date(),
+    },
+  });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { profileId: profile.id },
+  });
+
+  logger.info({ userId: user.id, profileId: profile.id }, 'Lazily created missing profile for existing user');
+  return profile;
 }
