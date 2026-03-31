@@ -23,6 +23,13 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().default('https://api.clipdeck.ar/api/auth'),
   DISCORD_CLIENT_ID: z.string().optional(),
   DISCORD_CLIENT_SECRET: z.string().optional(),
+  TWITTER_CLIENT_ID: z.string().optional(),
+  TWITTER_CLIENT_SECRET: z.string().optional(),
+  TIKTOK_CLIENT_KEY: z.string().optional(),
+  TIKTOK_CLIENT_SECRET: z.string().optional(),
+  INSTAGRAM_APP_ID: z.string().optional(),
+  INSTAGRAM_APP_SECRET: z.string().optional(),
+  SOCIAL_ENCRYPTION_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -49,6 +56,13 @@ export const config = {
   betterAuthUrl: parsed.data.BETTER_AUTH_URL,
   discordClientId: parsed.data.DISCORD_CLIENT_ID,
   discordClientSecret: parsed.data.DISCORD_CLIENT_SECRET,
+  twitterClientId: parsed.data.TWITTER_CLIENT_ID,
+  twitterClientSecret: parsed.data.TWITTER_CLIENT_SECRET,
+  tiktokClientKey: parsed.data.TIKTOK_CLIENT_KEY,
+  tiktokClientSecret: parsed.data.TIKTOK_CLIENT_SECRET,
+  instagramAppId: parsed.data.INSTAGRAM_APP_ID,
+  instagramAppSecret: parsed.data.INSTAGRAM_APP_SECRET,
+  socialEncryptionKey: parsed.data.SOCIAL_ENCRYPTION_KEY,
   isDev: parsed.data.NODE_ENV === 'development',
   isProd: parsed.data.NODE_ENV === 'production',
 };

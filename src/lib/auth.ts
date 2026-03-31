@@ -43,6 +43,11 @@ export const auth = betterAuth({
       clientSecret: config.googleClientSecret ?? '',
       enabled: !!(config.googleClientId && config.googleClientSecret),
     },
+    twitter: {
+      clientId: config.twitterClientId ?? '',
+      clientSecret: config.twitterClientSecret ?? '',
+      enabled: !!(config.twitterClientId && config.twitterClientSecret),
+    },
   },
   plugins: [
     passkey(),

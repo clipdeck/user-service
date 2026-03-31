@@ -1,9 +1,82 @@
 import type { FastifyInstance } from 'fastify';
+import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
-import { sendError } from '../lib/errors';
+import { sendError, forbidden } from '../lib/errors';
 import * as userService from '../services/userService';
 
 export async function userRoutes(app: FastifyInstance) {
+  // GET /users - List users (staff only)
+  app.get<{
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      sort?: string;
+      role?: string;
+    };
+  }>('/', async (request, reply) => {
+    try {
+      if (request.headers['x-user-staff'] !== 'true') {
+        throw forbidden('Staff access required');
+      }
+
+      const page = Math.max(1, parseInt(request.query.page || '1', 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '25', 10) || 25));
+      const search = request.query.search?.trim();
+      const sortParam = request.query.sort || 'createdAt:desc';
+      const role = request.query.role;
+
+      // Parse sort parameter
+      const [sortField, sortDirection] = sortParam.split(':');
+      const allowedSortFields = ['createdAt', 'updatedAt', 'name', 'email', 'role'];
+      const orderByField = allowedSortFields.includes(sortField) ? sortField : 'createdAt';
+      const orderByDir = sortDirection === 'asc' ? 'asc' : 'desc';
+
+      // Build where clause
+      const where: Record<string, unknown> = {};
+
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      if (role) {
+        where.role = role;
+      }
+
+      const safeSelect = {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        onboardingCompleted: true,
+        walletAddress: true,
+        referralCode: true,
+        referralCount: true,
+      };
+
+      const [data, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: safeSelect,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: { [orderByField]: orderByDir },
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      return { data, total, page, limit };
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
   // GET /users/me - Get current user profile (auth required)
   app.get('/me', async (request, reply) => {
     try {

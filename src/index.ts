@@ -9,6 +9,7 @@ import { profileRoutes } from './routes/profiles';
 import { searchRoutes } from './routes/search';
 import { referralRoutes } from './routes/referrals';
 import { linkedAccountRoutes } from './routes/linkedAccounts';
+import { socialLinkingRoutes } from './routes/socialLinking';
 import { sessionRoutes } from './routes/sessions';
 import { publisher } from './lib/events';
 import { setupEventHandlers, stopEventHandlers } from './events/handlers';
@@ -133,6 +134,7 @@ async function main() {
   await app.register(searchRoutes, { prefix: '/users/search' });
   await app.register(referralRoutes, { prefix: '/referrals' });
   await app.register(linkedAccountRoutes, { prefix: '/users' });
+  await app.register(socialLinkingRoutes, { prefix: '/linked-accounts' });
   await app.register(sessionRoutes, { prefix: '/users' });
 
   // Connect event publisher

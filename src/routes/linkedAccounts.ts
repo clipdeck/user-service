@@ -8,7 +8,7 @@ export async function linkedAccountRoutes(app: FastifyInstance) {
     const user = requireAuth(request);
     const accounts = await prisma.linkedSocialAccount.findMany({
       where: { userId: user.userId },
-      select: { platform: true, username: true, createdAt: true },
+      select: { platform: true, username: true, platformDisplayName: true, status: true, createdAt: true },
     });
     return { accounts };
   });
